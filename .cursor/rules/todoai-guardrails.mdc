@@ -1,0 +1,41 @@
+---
+description: Guardrails do projeto TodoAI — Clean Architecture, CQRS, EF Core
+alwaysApply: true
+---
+
+# TodoAI — Guardrails
+
+## Stack fixa
+
+- .NET 10, C#, monorepo `src/` + `tests/` + `docs/`
+- Clean Architecture: Domain → Application; Infrastructure → Application + Domain; Api compõe Application + Infrastructure
+- CQRS com MediatR na Application; controllers finos na Api
+- EF Core 10 + SQLite na Infrastructure
+- Testes: xUnit, FluentAssertions, Moq
+
+## Dependências proibidas
+
+- Domain não referencia Application, Infrastructure nem Api
+- Application não referencia Infrastructure nem Api
+- Não colocar lógica de negócio em controllers ou DbContext além de persistência
+
+## Onde implementar
+
+| Mudança | Camada |
+|---------|--------|
+| Regra de negócio / entidade | `src/TodoAI.Domain` |
+| Caso de uso, handler, DTO, interface | `src/TodoAI.Application` |
+| EF, repositório, migration | `src/TodoAI.Infrastructure` |
+| Rota HTTP, DI bootstrap | `src/TodoAI.Api` |
+| Teste da regra | `tests/TodoAI.<Camada>.Tests` |
+
+## Antes de finalizar
+
+1. `dotnet build` sem erros
+2. `dotnet test` quando houver alteração de comportamento
+3. Consultar `AGENTS.md` e ADRs em `docs/adr/` para decisões já tomadas
+
+## Commits e secrets
+
+- Não commitar sem pedido explícito do usuário
+- Não commitar `*.db`, `.env` ou credenciais
