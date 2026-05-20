@@ -5,7 +5,10 @@ using TodoAI.Application.Todos.Commands.CreateTodo;
 using TodoAI.Application.Todos.Commands.DeleteTodo;
 using TodoAI.Application.Todos.Commands.UpdateTodo;
 using TodoAI.Application.Todos.Commands.UpdateTodoStatus;
+using TodoAI.Application.Todos.Queries.GetTodoById;
 using TodoAI.Application.Todos.Queries.GetTodos;
+using TodoAI.Application.Todos.Queries.GetTodosByStatus;
+using TodoAI.Domain.Enums;
 
 namespace TodoAI.Api.Controllers;
 
@@ -21,9 +24,28 @@ public sealed class TodosController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetAll(
+        [FromQuery] TodoItemStatus? status,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken cancellationToken = default)
     {
+        if (status.HasValue)
+        {
+            var pagedResult = await _mediator.Send(
+                new GetTodosByStatusQuery(status.Value, page, pageSize),
+                cancellationToken);
+            return Ok(pagedResult);
+        }
+
         var result = await _mediator.Send(new GetTodosQuery(), cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new GetTodoByIdQuery(id), cancellationToken);
         return Ok(result);
     }
 
