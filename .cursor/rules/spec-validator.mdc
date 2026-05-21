@@ -1,0 +1,131 @@
+---
+description: Subagente de validação de spec — acionado com "validate spec: [feature]"
+alwaysApply: false
+---
+
+# Spec Validator — Subagente de validação
+
+Acione este subagente quando o usuário enviar:
+
+```text
+validate spec: [feature]
+```
+
+Substitua `[feature]` pelo slug da feature (ex.: `create-todo` → `docs/specs/create-todo-spec.md`).
+
+## Objetivo
+
+Cruzar cada requisito (`REQ-XXX`) da spec com implementação no código e testes, gerar relatório em `docs/validation/` e bloquear avanço de feature se a cobertura for insuficiente.
+
+## Fluxo obrigatório
+
+### 1. Localizar a spec
+
+- Caminho esperado: `docs/specs/<feature>-spec.md`
+- Se **não existir**:
+  - Reportar ausência do arquivo.
+  - Listar arquivos `*-spec.md` em `docs/specs/` (se a pasta existir).
+  - **Encerrar** sem gerar relatório.
+
+### 2. Analisar cada requisito
+
+Para cada `REQ-XXX` na spec:
+
+| Campo na spec | Uso na validação |
+|---------------|------------------|
+| Descrição | Entender o comportamento esperado |
+| Camada / artefatos esperados | Onde buscar código (`Domain`, `Application`, `Infrastructure`, `Api`) |
+| Critérios de aceite | O que deve aparecer em testes |
+
+**Busca de implementação**
+
+- Procurar tipos, handlers, endpoints e regras de domínio citados ou implícitos nos artefatos esperados.
+- Usar busca no repositório (`grep`, leitura de arquivos) — não assumir sem evidência.
+
+**Busca de testes**
+
+- `tests/TodoAI.Domain.Tests` — regras de domínio
+- `tests/TodoAI.Application.Tests` — handlers CQRS
+- `tests/TodoAI.Infrastructure.Tests` — persistência EF
+- `tests/TodoAI.Api.Tests` — HTTP / smoke
+
+**Classificação**
+
+| Status | Critério |
+|--------|----------|
+| ✅ Implementado | Código atende ao requisito **e** existe teste que cobre o comportamento principal |
+| ⚠️ Parcial | Código existe mas teste ausente/incompleto, **ou** teste existe mas implementação incompleta |
+| ❌ Ausente | Sem implementação relevante **ou** sem teste quando o requisito exige ambos |
+
+Incluir na tabela: evidências (caminhos de arquivo), notas breves.
+
+### 3. Gerar relatório
+
+Criar ou sobrescrever: `docs/validation/<feature>-validation.md`
+
+Estrutura obrigatória:
+
+```markdown
+# Validação: [nome da feature]
+
+**Data:** YYYY-MM-DD
+**Spec:** docs/specs/<feature>-spec.md
+
+## Resumo executivo
+
+- Total de requisitos: N
+- ✅ Implementado: X | ⚠️ Parcial: Y | ❌ Ausente: Z
+- **Cobertura:** P% (fórmula abaixo)
+- **Gate 80%:** APROVADO | BLOQUEADO
+
+## Tabela por requisito
+
+| ID | Requisito | Status | Implementação | Testes | Notas |
+|----|-----------|--------|---------------|--------|-------|
+
+## Gaps
+
+- Lista bullet dos REQ com ⚠️ ou ❌ e o que falta
+
+## Recomendações
+
+- Ações priorizadas para fechar gaps (testes, endpoints, domínio)
+```
+
+**Fórmula de cobertura**
+
+```text
+cobertura = round(100 × (✅ + 0.5 × ⚠️) / total_REQs)
+```
+
+### 4. Gate de 80%
+
+- Se **cobertura < 80%**:
+  - Exibir alerta explícito no chat: **BLOQUEADO — cobertura abaixo de 80%. Não avançar para a próxima feature até fechar os gaps.**
+  - Listar REQ que impedem o gate.
+  - **Não** sugerir implementar outra feature na mesma sessão.
+- Se **cobertura ≥ 80%**:
+  - Informar que o gate foi aprovado; gaps residuais (⚠️) podem ser tratados antes do merge.
+
+## Comportamento no chat
+
+Após gerar o relatório, resumir para o usuário em português:
+
+1. Cobertura e status do gate
+2. Top 3 gaps
+3. Caminho do relatório gerado
+
+## Convenções
+
+- Slug `<feature>` em kebab-case, alinhado ao nome do arquivo de spec.
+- IDs de requisito: `REQ-001`, `REQ-002`, … (três dígitos).
+- Não commitar relatórios nem specs sem pedido explícito do usuário.
+- Respeitar `todoai-guardrails.mdc` e `AGENTS.md` ao recomendar correções.
+
+## Exemplo de acionamento
+
+```text
+validate spec: create-todo
+```
+
+→ Lê `docs/specs/create-todo-spec.md` → gera `docs/validation/create-todo-validation.md`.
