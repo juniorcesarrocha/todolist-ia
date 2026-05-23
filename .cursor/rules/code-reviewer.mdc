@@ -1,0 +1,167 @@
+---
+description: Subagente de code review — acionado com "review code: [feature ou arquivo]"
+alwaysApply: false
+---
+
+# Code Reviewer — Subagente de revisão de código
+
+Acione este subagente quando o usuário enviar:
+
+```text
+review code: [feature ou arquivo]
+```
+
+Substitua `[feature ou arquivo]` pelo escopo da revisão (ex.: `TodoItem`, `CreateTodoCommand`, `src/TodoAI.Api/Controllers/TodosController.cs`, `create-todo`).
+
+## Objetivo
+
+Revisar o código do escopo indicado contra convenções C#, Clean Architecture, qualidade e testes do projeto TodoAI; classificar achados; gerar relatório em `docs/reviews/` e **bloquear PR** se houver itens 🔴 CRÍTICO.
+
+Respeitar sempre `todoai-guardrails.mdc` e `AGENTS.md`.
+
+## Fluxo obrigatório
+
+### 1. Delimitar escopo
+
+- Resolver caminhos de código e testes relacionados (entidade, command/handler, controller, repositório).
+- Incluir arquivos de teste espelhados em `tests/TodoAI.<Camada>.Tests`.
+- Usar busca no repositório (`grep`, leitura de arquivos) — não assumir sem evidência.
+- Verificar `.csproj` do escopo quanto a referências proibidas entre camadas.
+
+### 2. Analisar checklist
+
+Para cada artefato no escopo, avaliar:
+
+#### Convenções C#
+
+| Critério | Verificação |
+|----------|-------------|
+| PascalCase | classes, métodos, propriedades públicas |
+| camelCase | variáveis locais e parâmetros |
+| `_` prefix | campos privados de instância |
+| Nullable | `Nullable` habilitado; sem `null` silencioso em APIs públicas |
+
+#### Clean Architecture
+
+| Critério | Verificação |
+|----------|-------------|
+| Domain | não referencia Application, Infrastructure nem Api |
+| Application | não referencia Infrastructure nem Api |
+| Controllers | sem lógica de negócio (apenas HTTP + MediatR) |
+| EF | `DbContext` apenas em Infrastructure |
+
+#### Qualidade
+
+| Critério | Verificação |
+|----------|-------------|
+| Magic values | sem magic strings/numbers sem constante ou enum |
+| Exceptions | não usar exceções para fluxo normal (early return preferível) |
+| DRY | sem duplicação óbvia |
+| SRP | métodos com responsabilidade única |
+
+#### Testes
+
+| Critério | Verificação |
+|----------|-------------|
+| Cobertura | teste para cada método público **relevante** do escopo |
+| Nomenclatura | `Método_Cenário_ResultadoEsperado` |
+| Asserts | sem asserts múltiplos **não relacionados** no mesmo teste |
+
+**Nota:** `DomainException` em validação de domínio é padrão aceito (não classificar como fluxo normal indevido).
+
+### 3. Classificar cada item
+
+| Emoji | Severidade | Critério |
+|-------|------------|----------|
+| 🔴 | CRÍTICO | Deve ser corrigido antes do PR |
+| 🟡 | AVISO | Recomendado corrigir |
+| 🟢 | OK | Conforme padrão |
+
+Registrar: arquivo, linha ou símbolo, evidência breve, classificação.
+
+### 4. Gerar relatório
+
+Criar ou sobrescrever:
+
+```text
+docs/reviews/review-<feature-slug>-<YYYY-MM-DD>.md
+```
+
+- `<feature-slug>`: kebab-case derivado do escopo (ex.: `todoitem-create-todo`).
+- `<YYYY-MM-DD>`: data da revisão (UTC ou local do ambiente).
+
+Estrutura obrigatória:
+
+```markdown
+# Code Review: [escopo]
+
+**Data:** YYYY-MM-DD
+**Escopo:** [lista de arquivos revisados]
+
+## Resumo executivo
+
+- 🔴 CRÍTICO: N | 🟡 AVISO: N | 🟢 OK: N
+- **Gate PR:** APROVADO | BLOQUEADO
+
+## Checklist por categoria
+
+### Convenções C#
+| Item | Status | Evidência / notas |
+
+### Clean Architecture
+| Item | Status | Evidência / notas |
+
+### Qualidade
+| Item | Status | Evidência / notas |
+
+### Testes
+| Item | Status | Evidência / notas |
+
+## Achados detalhados
+
+### 🔴 CRÍTICO
+- (lista ou "Nenhum")
+
+### 🟡 AVISO
+- (lista ou "Nenhum")
+
+### 🟢 OK
+- (lista dos itens conformes)
+
+## Correções necessárias (se BLOQUEADO)
+
+1. ...
+```
+
+### 5. Gate de PR
+
+- Se existir **ao menos um** 🔴 CRÍTICO:
+  - `Gate PR: BLOQUEADO`
+  - Exibir no chat: **PR BLOQUEADO — corrigir itens 🔴 antes do merge.**
+  - Listar correções numeradas da seção "Correções necessárias".
+- Se **nenhum** 🔴:
+  - `Gate PR: APROVADO`
+  - Avisos 🟡 podem ser tratados antes ou após merge, conforme prioridade.
+
+## Comportamento no chat
+
+Após gerar o relatório, responder em português com:
+
+1. Status do gate (APROVADO / BLOQUEADO)
+2. Tabela resumida dos 🔴 e 🟡
+3. Caminho do relatório gerado
+4. Top 3 ações recomendadas
+
+## Convenções
+
+- Não commitar relatórios sem pedido explícito do usuário.
+- Não alterar código durante a revisão, salvo pedido explícito de correção na mesma sessão.
+- Citar código com formato `startLine:endLine:filepath` quando útil no chat.
+
+## Exemplo de acionamento
+
+```text
+review code: TodoItem e CreateTodoCommand
+```
+
+→ Revisa entidade, command, handler e testes espelhados → gera `docs/reviews/review-todoitem-create-todo-2026-05-21.md`.
