@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Scalar.AspNetCore;
 using TodoAI.Api.ExceptionHandling;
 using TodoAI.Application;
 using TodoAI.Infrastructure;
@@ -18,6 +19,7 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapScalarApiReference();
 
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<TodoAiDbContext>();
