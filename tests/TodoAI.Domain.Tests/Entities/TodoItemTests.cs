@@ -51,6 +51,19 @@ public sealed class TodoItemTests
     }
 
     [Fact]
+    public void Complete_WhenAlreadyDone_ShouldRemainDoneWithoutUpdatingTimestamp()
+    {
+        var item = TodoItem.Create("Tarefa", null);
+        item.Complete();
+        var updatedAt = item.UpdatedAt;
+
+        item.Complete();
+
+        item.Status.Should().Be(TodoItemStatus.Done);
+        item.UpdatedAt.Should().Be(updatedAt);
+    }
+
+    [Fact]
     public void StartProgress_ShouldSetStatusToInProgressAndUpdateTimestamp()
     {
         var item = TodoItem.Create("Tarefa", null);
