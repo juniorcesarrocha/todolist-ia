@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using TodoAI.Application.Todos;
+using TodoAI.Application.Todos.Commands.CompleteTodo;
 using TodoAI.Application.Todos.Commands.CreateTodo;
 using TodoAI.Application.Todos.Commands.DeleteTodo;
 using TodoAI.Application.Todos.Commands.UpdateTodo;
@@ -73,6 +74,13 @@ public sealed class TodosController : ControllerBase
     {
         await _mediator.Send(new DeleteTodoCommand(id), cancellationToken);
         return NoContent();
+    }
+
+    [HttpPatch("{id:guid}/complete")]
+    public async Task<IActionResult> Complete(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new CompleteTodoCommand(id), cancellationToken);
+        return Ok(result);
     }
 
     [HttpPatch("{id:guid}/status")]

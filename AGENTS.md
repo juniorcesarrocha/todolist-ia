@@ -119,6 +119,7 @@ dotnet ef database update --project src/TodoAI.Infrastructure --startup-project 
 | PUT | `/api/todos/{id}` | Atualiza título e descrição |
 | DELETE | `/api/todos/{id}` | Remove tarefa |
 | PATCH | `/api/todos/{id}/status` | Altera status (`{ "status": "Pending" \| "InProgress" \| "Done" }`) |
+| PATCH | `/api/todos/{id}/complete` | Marca tarefa como concluída (`Done`); retorna `422` se já concluída |
 
 ## O que evitar
 
